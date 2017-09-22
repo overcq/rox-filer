@@ -54,8 +54,9 @@ else
   echo "ERROR from $0:" >&2
   echo "I cannot find an executable binary." >&2
   echo "Trying to compile..." >&2
-  if [ -n "$DISPLAY" ]; then
-    xterm -e "$0" --compile
+  if [ -n "$DISPLAY" ] && ! tty -s; then
+    xterm -e "$0" --compile \
+    || urxvt -e "$0" --compile
   else
     "$0" --compile
   fi
