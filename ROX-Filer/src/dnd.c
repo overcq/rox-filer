@@ -162,7 +162,7 @@ void dnd_init(void)
 
 	option_add_int(&o_dnd_drag_to_icons, "dnd_drag_to_icons", 1);
 	option_add_int(&o_dnd_spring_open, "dnd_spring_open", 0);
-	option_add_int(&o_dnd_spring_delay, "dnd_spring_delay", 400);
+	option_add_int(&o_dnd_spring_delay, "dnd_spring_delay", 360);
 	option_add_int(&o_dnd_left_menu, "dnd_left_menu", TRUE);
 	option_add_int(&o_dnd_middle_menu, "dnd_middle_menu", TRUE);
 
