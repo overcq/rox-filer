@@ -39,7 +39,6 @@
 #include "gui_support.h"
 #include "mount.h"
 #include "type.h"
-#include "usericons.h"
 #include "options.h"
 #include "fscache.h"
 #include "pixmaps.h"
@@ -60,11 +59,6 @@ static void examine_dir(const guchar *path, DirItem *item,
  *			EXTERNAL INTERFACE			*
  ****************************************************************/
 
-void diritem_init(void)
-{
-	read_globicons();
-}
-
 /* Bring this item's structure uptodate.
  * 'parent' is optional; it saves one stat() for directories.
  */
@@ -73,10 +67,7 @@ void diritem_restat(const guchar *path, DirItem *item, struct stat *parent)
 	struct stat	info;
 
 	if (item->_image)
-	{
-		g_object_unref(item->_image);
-		item->_image = NULL;
-	}
+		g_clear_object( &item->_image );
 	item->flags = 0;
 	item->mime_type = NULL;
 
@@ -193,15 +184,9 @@ void diritem_restat(const guchar *path, DirItem *item, struct stat *parent)
 		if (!item->mime_type)
 			item->mime_type = text_plain;
 
-		check_globicon(path, item);
-
-		if (item->mime_type == application_x_desktop && item->_image == NULL)
-		{
+		if( item->mime_type == application_x_desktop )
 			item->_image = g_fscache_lookup(desktop_icon_cache, path);
-		}
 	}
-	else
-		check_globicon(path, item);
 
 	if (!item->mime_type)
 		item->mime_type = mime_type_from_base_type(item->base_type);
@@ -269,8 +254,6 @@ static void examine_dir(const guchar *path, DirItem *item,
 
 	if (!tmp)
 		tmp = g_string_new(NULL);
-
-	check_globicon(path, item);
 
 	if (item->flags & ITEM_FLAG_MOUNT_POINT)
 	{

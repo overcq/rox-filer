@@ -57,7 +57,6 @@
 #include "dir.h"
 #include "diritem.h"
 #include "appmenu.h"
-#include "usericons.h"
 #include "infobox.h"
 #include "view_iface.h"
 #include "display.h"
@@ -74,7 +73,6 @@ typedef enum {
 	FILE_OPEN_FILE,
 	FILE_PROPERTIES,
 	FILE_RUN_ACTION,
-	FILE_SET_ICON,
 	FILE_SEND_TO,
 	FILE_DELETE,
 	FILE_USAGE,
@@ -219,7 +217,6 @@ static GtkItemFactoryEntry filer_menu_def[] = {
 {">" N_("Send To..."),		NULL, file_op, FILE_SEND_TO, NULL},
 {">",				NULL, NULL, 0, "<Separator>"},
 {">" N_("Set Run Action..."),	"asterisk", file_op, FILE_RUN_ACTION, "<StockItem>", GTK_STOCK_EXECUTE},
-{">" N_("Set Icon..."),		NULL, file_op, FILE_SET_ICON, NULL},
 {">" N_("Properties"),		"<Ctrl>P", file_op, FILE_PROPERTIES, "<StockItem>", GTK_STOCK_PROPERTIES},
 {">" N_("Count"),		NULL, file_op, FILE_USAGE, NULL},
 {">" N_("Set Type..."),		NULL, file_op, FILE_SET_TYPE, NULL},
@@ -1913,9 +1910,6 @@ static void file_op(gpointer data, FileOp action, GtkWidget *unused)
 			case FILE_RUN_ACTION:
 				prompt = _("Set run action for ... ?");
 				break;
-			case FILE_SET_ICON:
-				prompt = _("Set icon for ... ?");
-				break;
 			case FILE_SEND_TO:
 				prompt = _("Send ... to ... ?");
 				break;
@@ -2039,9 +2033,6 @@ static void file_op(gpointer data, FileOp action, GtkWidget *unused)
 			break;
 		case FILE_RUN_ACTION:
 			run_action(item);
-			break;
-		case FILE_SET_ICON:
-			icon_set_handler_dialog(item, path);
 			break;
 		default:
 			g_warning("Unknown action!");

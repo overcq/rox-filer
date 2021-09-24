@@ -66,7 +66,6 @@
 #include "mount.h"
 #include "pixmaps.h"
 #include "type.h"
-#include "usericons.h"
 #include "main.h"
 
 #ifdef USE_NOTIFY
@@ -1027,7 +1026,6 @@ static void dir_rescan(Directory *dir)
 
 	names = g_ptr_array_new();
 
-	read_globicons();
 	mount_update(FALSE);
 	if (dir->error)
 	{

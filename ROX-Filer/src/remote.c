@@ -49,7 +49,6 @@
 #include "display.h"
 #include "xml.h"
 #include "diritem.h"
-#include "usericons.h"
 
 static GdkAtom filer_atom;	/* _ROX_FILER_EUID_VERSION_HOST */
 static GdkAtom filer_atom_any;	/* _ROX_FILER_EUID_HOST */
@@ -102,9 +101,6 @@ static xmlNodePtr rpc_PinboardRemove(GList *args);
 static xmlNodePtr rpc_SetBackdrop(GList *args);
 static xmlNodePtr rpc_SetBackdropApp(GList *args);
 
-static xmlNodePtr rpc_SetIcon(GList *args);
-static xmlNodePtr rpc_UnsetIcon(GList *args);
-
 /****************************************************************
  *			EXTERNAL INTERFACE			*
  ****************************************************************/
@@ -152,8 +148,6 @@ gboolean remote_init(xmlDocPtr rpc, gboolean new_copy)
 	soap_register("PinboardRemove", rpc_PinboardRemove, "Path", "Label");
 	soap_register("PanelAdd", rpc_PanelAdd, "Side,Path", "Label,After,Shortcut,Args,Locked");
 	soap_register("PanelRemove", rpc_PanelRemove, "Side", "Path,Label");
- 	soap_register("SetIcon", rpc_SetIcon, "Path,Icon", NULL);
- 	soap_register("UnsetIcon", rpc_UnsetIcon, "Path", NULL);
 
 	/* Look for a property on the root window giving the IPC window
 	 * of an already-running copy of this version of the filer, running
@@ -627,39 +621,6 @@ static GList *list_value(xmlNode *arg)
 }
 
 #define ARG(n) ((xmlNode *) g_list_nth(args, n)->data)
-
-/* The RPC handlers all work in the same way -- they get passed a list of
- * xmlNode arguments from the RPC call and they return the result node, or
- * NULL if there isn't a result.
- */
-
-static xmlNodePtr rpc_SetIcon(GList *args)
-{
-	char	   *path, *icon;
-	
-	path = string_value(ARG(0));
-	icon = string_value(ARG(1));
-
-	add_globicon(path,icon);
-
-	g_free(path);
-	g_free(icon);
-
-	return NULL;
-}
-
-static xmlNodePtr rpc_UnsetIcon(GList *args)
-{
-	char	   *path;
-	
-	path = string_value(ARG(0));
-
-	delete_globicon(path);
-
-	g_free(path);
-
-	return NULL;
-}
 
 static xmlNodePtr rpc_Version(GList *args)
 {

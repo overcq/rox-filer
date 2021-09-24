@@ -52,7 +52,6 @@
 #include "pixmaps.h"
 #include "mount.h"
 #include "type.h"
-#include "usericons.h"
 #include "pinboard.h"	/* For pinboard_set_backdrop_box */
 
 static gboolean have_primary = FALSE;	/* We own the PRIMARY selection? */
@@ -711,10 +710,6 @@ static void file_op(gpointer data, guint action, GtkWidget *widget)
 				report_error(
 				_("You can only set the run action for a "
 				"regular file"));
-			break;
-		case ACTION_SET_ICON:
-			icon_set_handler_dialog(menu_icon->item,
-						menu_icon->path);
 			break;
 	}
 }

@@ -48,7 +48,6 @@
 #include "pinboard.h"
 #include "dir.h"
 #include "diritem.h"
-#include "usericons.h"
 #include "menu.h"
 #include "bookmarks.h"
 
