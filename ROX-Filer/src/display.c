@@ -752,10 +752,7 @@ void display_update_view(FilerWindow *filer_window,
 		monospace = pango_font_description_from_string("monospace");
 	
 	if (view->details)
-	{
-		g_object_unref(G_OBJECT(view->details));
-		view->details = NULL;
-	}
+		g_clear_object( &view->details );
 
 	str = details(filer_window, item);
 	if (str)
