@@ -49,8 +49,6 @@ static gboolean open_file(const guchar *path, MIME_type *type);
 static void open_mountpoint(const guchar *full_path, DirItem *item,
 			    FilerWindow *filer_window, FilerWindow *src_window,
 			    gboolean edit);
-static gboolean run_desktop(const char *full_path,
-			    const char **args, const char *dir);
 static gboolean type_open(const char *path, MIME_type *type);
 
 typedef struct _PipedData PipedData;
@@ -123,14 +121,7 @@ void run_with_files(const char *path, GList *uri_list)
 	argv[argc++] = NULL;
 
 	type = type_from_path(argv[0]);
-	if (type && type == application_x_desktop)
-	{
-		run_desktop(argv[0], argv + 1, home_dir);
-	}
-	else
-	{
-		rox_spawn(home_dir, argv);
-	}
+    rox_spawn(home_dir, argv);
 
 	for (i = 1; i < argc; i++)
 		g_free((gchar *) argv[i]);
@@ -287,11 +278,7 @@ gboolean run_diritem(const guchar *full_path,
 						? filer_window->sym_path
 						: NULL;
 
-				if (item->mime_type == application_x_desktop)
-					return run_desktop(full_path,
-							   NULL, dir);
-				else
-					argv[0] = full_path;
+                argv[0] = full_path;
 
 				return rox_spawn(dir, argv) != 0;
 			}
@@ -610,121 +597,6 @@ static void open_mountpoint(const guchar *full_path, DirItem *item,
 	}
 }
 
-/* full_path is a .desktop file. Execute the application, using the Exec line
- * from the file.
- * Returns TRUE on success.
- */
-static gboolean run_desktop(const char *full_path,
-			    const char **args,
-			    const char *dir)
-{
-	GError *error = NULL;
-	char *exec = NULL;
-	char *terminal = NULL;
-	char *req_dir = NULL;
-	gint argc = 0;
-	gchar **argv = NULL;
-	GPtrArray *expanded = NULL;
-	gboolean inserted_args = FALSE;
-	int i;
-	gboolean success = FALSE;
-
-	get_values_from_desktop_file(full_path,
-					&error,
-					"Desktop Entry", "Exec", &exec,
-					"Desktop Entry", "Terminal", &terminal,
-				        "Desktop Entry", "Path", &req_dir,
-					NULL);
-	if (error)
-	{
-		delayed_error("Failed to parse .desktop file '%s':\n%s",
-				full_path, error->message);
-		goto err;
-	}
-
-	if (!exec)
-	{
-		delayed_error("Can't find Exec command in .desktop file '%s'",
-				full_path);
-		goto err;
-	}
-
-	if (!g_shell_parse_argv(exec, &argc, &argv, &error))
-	{
-		delayed_error("Failed to parse '%s' from '%s':\n%s",
-				exec, full_path, error->message);
-		goto err;
-	}
-
-	expanded = g_ptr_array_new();
-
-	if (terminal && g_ascii_strcasecmp(terminal, "true") == 0) {
-		g_ptr_array_add(expanded, g_strdup("xterm"));
-		g_ptr_array_add(expanded, g_strdup("-e"));
-	}
-
-	for (i = 0; i < argc; i++)
-	{
-		const char *src = argv[i];
-
-		if (src[0] == '%' && src[1] != '\0' && src[2] == '\0')
-		{
-			/* We should treat these four differently. */
-			if (src[1] == 'f' || src[1] == 'F' ||
-			    src[1] == 'u' || src[1] == 'U')
-			{
-				int j;
-				for (j = 0; args && args[j]; j++)
-					g_ptr_array_add(expanded, g_strdup(args[j]));
-				inserted_args = TRUE;
-			}
-			else
-			{
-				delayed_error("Unsupported escape character in '%s' in '%s'",
-						exec, full_path);
-				goto err;
-			}
-		}
-		else
-		{
-			g_ptr_array_add(expanded, g_strdup(src));
-		}
-	}
-	if (!inserted_args)
-	{
-		/* Many .desktop files don't include a % expansion. In that case
-		 * add the arguments here.
-		 */
-		int j;
-		for (j = 0; args && args[j]; j++)
-			g_ptr_array_add(expanded, g_strdup(args[j]));
-	}
-	g_ptr_array_add(expanded, NULL);
-
-	if(req_dir && req_dir[0])
-		dir = req_dir;
-
-	success = rox_spawn(dir, (const gchar **) expanded->pdata);
-err:
-	if (error != NULL)
-		g_error_free(error);
-	if (exec != NULL)
-		g_free(exec);
-	if (terminal != NULL)
-		g_free(terminal);
-	if (req_dir != NULL)
-		g_free(req_dir);
-	if (argv != NULL)
-		g_strfreev(argv);
-	if (expanded != NULL)
-	{
-		g_ptr_array_foreach(expanded, (GFunc) g_free, NULL);
-		g_ptr_array_free(expanded, TRUE);
-	}
-
-	return success;
-}
-
 /* Returns FALSE is no run action is set for this type. */
 static gboolean type_open(const char *path, MIME_type *type)
 {
@@ -774,11 +646,6 @@ static gboolean type_open(const char *path, MIME_type *type)
 	{
 		argv[0] = g_strconcat(open, "/AppRun", NULL);
 		rox_spawn(home_dir, (const gchar **) argv);
-	}
-	else if (type_get_type(open) == application_x_desktop)
-	{
-		argv[0] = open;
-		run_desktop(open, (const char **) (argv + 1), home_dir);
 	}
 	else
 	{

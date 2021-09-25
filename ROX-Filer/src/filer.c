@@ -2409,17 +2409,6 @@ void filer_add_tip_details(FilerWindow *filer_window,
 		if (info)
 			g_object_unref(info);
 	}
-	else if (item->mime_type == application_x_desktop)
-	{
-		char *summary;
-		summary = tip_from_desktop_file(fullpath);
-		if (summary)
-		{
-			g_string_append(tip, summary);
-			g_string_append_c(tip, '\n');
-			g_free(summary);
-		}
-	}
 
 	if (!g_utf8_validate(item->leafname, -1, NULL))
 		g_string_append(tip,
@@ -3613,27 +3602,6 @@ void filer_save_settings(FilerWindow *fwin)
 			 G_CALLBACK(settings_response), set_win);
 
 	gtk_widget_show_all(set_win->window);
-}
-
-static char *tip_from_desktop_file(const char *full_path)
-{
-	GError *error = NULL;
-	char *comment = NULL;
-
-	comment = get_value_from_desktop_file(full_path,
-			"Desktop Entry", "Comment", &error);
-	if (error)
-	{
-		delayed_error("Failed to parse .desktop file '%s':\n%s",
-				full_path, error->message);
-		goto err;
-	}
-
-err:
-	if (error != NULL)
-		g_error_free(error);
-
-	return comment;
 }
 
 UnmountPrompt filer_get_unmount_action(const char *path)
