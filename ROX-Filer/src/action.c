@@ -32,6 +32,14 @@
 #include <sys/time.h>
 #include <utime.h>
 #include <stdarg.h>
+#include <gio/gdesktopappinfo.h>
+#include <gio/gfiledescriptorbased.h>
+#include <gio/gio.h>
+#include <gio/gunixfdlist.h>
+#include <gio/gunixfdmessage.h>
+#include <gio/gunixinputstream.h>
+#include <gio/gunixmounts.h>
+#include <gio/gunixoutputstream.h>
 
 #include "global.h"
 
@@ -59,7 +67,7 @@
 # define ATTR_MAN_PAGE N_("See the fsattr(5) man page for full details.")
 #else
 # define ATTR_MAN_PAGE N_("You do not appear to have OS support.")
-#endif 
+#endif
 
 /* Parent->Child messages are one character each:
  *
@@ -311,12 +319,12 @@ static void show_settype_help(gpointer data)
 	gtk_label_set_markup(GTK_LABEL(text), _(
 "Normally ROX-Filer determines the type of a regular file\n"
 "by matching it's name against a pattern. To change the\n"
-"type of the file you must rename it.\n" 
+"type of the file you must rename it.\n"
 "\n"
 "Newer file systems can support something called 'Extended\n"
 "Attributes' which can be used to store additional data with\n"
 "each file as named parameters. ROX-Filer uses the\n"
-"'user.mime_type' attribute to store file types.\n" 
+"'user.mime_type' attribute to store file types.\n"
 "\n"
 "File types are only supported for regular files, not\n"
 "directories, devices, pipes or sockets, and then only\n"
@@ -370,7 +378,7 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 		gui_side->errors++;
 		abox_log(abox, buffer + 1, "error");
 	}
-	else if (*buffer == '<') 
+	else if (*buffer == '<')
 		abox_set_file(abox, 0, buffer+1);
 	else if (*buffer == '>')
 	{
@@ -387,7 +395,7 @@ static void process_message(GUIside *gui_side, const gchar *buffer)
 
 /* Called when the child sends us a message */
 static void message_from_child(gpointer 	  data,
-			        gint     	  source, 
+			        gint     	  source,
 			        GdkInputCondition condition)
 {
 	char buf[5];
@@ -763,7 +771,7 @@ static void destroy_action_window(GtkWidget *widget, gpointer data)
 	}
 
 	g_free(gui_side);
-	
+
 	one_less_window();
 }
 
@@ -924,7 +932,7 @@ static void do_delete(const char *src_path, const char *unused)
 	if (write_prot || !quiet)
 	{
 		int res;
-		
+
 		printf_send("<%s", src_path);
 		printf_send(">");
 		res=printf_reply(from_parent, write_prot && !o_force,
@@ -973,7 +981,7 @@ static void do_eject(const char *path)
 {
 	const char *argv[]={"sh", "-c", NULL, NULL};
 	char *err;
-	
+
 	check_flags();
 
 	if (!quiet)
@@ -1002,10 +1010,36 @@ static void do_eject(const char *path)
 		g_return_if_fail(c == 'X');
 	}
 
-	argv[2] = build_command_with_path(o_action_eject_command.value,
-					  path);
-	err = fork_exec_wait((const char**)argv);
-	g_free((gchar *) argv[2]);
+#if 0
+	GUnixMountEntry *mount_entry = g_unix_mount_at( path, NULL );
+#else
+//WA Ominięcie błędu w “g_unix_mount_at”.
+	GList *list_head = g_unix_mount_points_get( NULL );
+	GList *list = list_head;
+	GUnixMountEntry *mount_entry = NULL;
+	while(list)
+	{	if( !mount_entry
+		&& strcmp( g_unix_mount_get_mount_path( list->data ), path ) == 0
+		)
+			mount_entry = list->data;
+		else
+			//BUG Nie można użyć, ponieważ “options” w ‟glib” nie zawiera poprawnego adresu.
+			;//g_unix_mount_free( list->data );
+		list = list->next;
+	}
+	g_list_free( list_head );
+#endif
+	if( mount_entry )
+	{	if( !g_unix_mount_is_system_internal( mount_entry ))
+		{	argv[2] = build_command_with_path( o_action_eject_command.value, g_unix_mount_get_device_path( mount_entry ));
+			err = fork_exec_wait((const char**)argv);
+			g_free((gchar *) argv[2]);
+		}else
+			err = g_strdup( _( "System internal mount point" ));
+		//BUG Nie można użyć, ponieważ “options” w ‟glib” nie zawiera poprawnego adresu.
+		//g_unix_mount_free( mount_entry );
+	}else
+		err = g_strdup( _( "No mount point" ));
 	if (err)
 	{
 		printf_send(_("!%s\neject failed\n"), err);
@@ -1699,7 +1733,7 @@ static void usage_cb(gpointer data)
 		send_dir(path);
 
 		size_tally = 0;
-		
+
 		if(n>1 && i>0)
 		{
 			per=100*i/n;
@@ -1716,7 +1750,7 @@ static void usage_cb(gpointer data)
 
 	g_string_printf(message, _("'\nTotal: %s ("),
 			format_double_size(total_size));
-	
+
 	if (file_counter)
 		g_string_append_printf(message,
 				"%ld %s%s", file_counter,
@@ -1730,7 +1764,7 @@ static void usage_cb(gpointer data)
 				"%ld %s)\n", dir_counter,
 				dir_counter == 1 ? _("directory")
 						 : _("directories"));
-	
+
 	send_msg();
 }
 
@@ -1810,7 +1844,7 @@ static void delete_cb(gpointer data)
 
 		g_free(dir);
 	}
-	
+
 	send_done();
 }
 
@@ -1824,7 +1858,7 @@ static void eject_cb(gpointer data)
 	for (i=0; paths; paths = paths->next, i++)
 	{
 		guchar	*path = (guchar *) paths->data;
-		
+
 		if(n>1 && i>0)
 		{
 			per=100*i/n;
@@ -1834,7 +1868,7 @@ static void eject_cb(gpointer data)
 
 		do_eject(path);
 	}
-	
+
 	send_done();
 }
 
@@ -1859,7 +1893,7 @@ static void find_cb(gpointer data)
 			break;
 		printf_send("#");
 	}
-	
+
 	send_done();
 }
 
@@ -1890,7 +1924,7 @@ static void chmod_cb(gpointer data)
 		else
 			do_chmod(path, NULL);
 	}
-	
+
 	send_done();
 }
 
@@ -1921,7 +1955,7 @@ static void settype_cb(gpointer data)
 		else
 			do_settype(path, NULL);
 	}
-	
+
 	send_done();
 }
 
@@ -2006,7 +2040,7 @@ void action_usage(GList *paths)
 	abox = abox_new(_("Disk Usage"), TRUE);
 	if(paths && paths->next)
 		abox_set_percentage(ABOX(abox), 0);
-	
+
 	gui_side = start_action(abox, usage_cb, paths,
 					 o_action_force.int_value,
 					 o_action_brief.int_value,
@@ -2139,7 +2173,7 @@ void action_chmod(GList *paths, gboolean force_recurse, const char *action)
 				o_action_brief.int_value,
 				recurse,
 				o_action_newer.int_value);
-	
+
 	if (!gui_side)
 		goto out;
 
@@ -2202,7 +2236,7 @@ void action_settype(GList *paths, gboolean force_recurse, const char *oldtype)
 				o_action_brief.int_value,
 				recurse,
 				o_action_newer.int_value);
-	
+
 	if (!gui_side)
 		goto out;
 
@@ -2420,7 +2454,7 @@ static gboolean remove_pinned_ok(GList *paths)
 	for (; paths; paths = paths->next)
 	{
 		guchar	*path = (guchar *) paths->data;
-		
+
 		if (icons_require(path))
 		{
 			if (++ask_n > MAX_ASK)
@@ -2453,7 +2487,7 @@ static gboolean remove_pinned_ok(GList *paths)
 			leaf++;
 		else
 			leaf = path;
-		
+
 		g_string_append_c(message, '`');
 		g_string_append(message, leaf);
 		g_string_append_c(message, '\'');
@@ -2478,11 +2512,11 @@ static gboolean remove_pinned_ok(GList *paths)
 				_(" will affect some items on the pinboard "
 					"or panel - really delete them?"));
 	}
-	
+
 	retval = confirm(message->str, GTK_STOCK_DELETE, NULL);
 
 	g_string_free(message, TRUE);
-	
+
 	return retval;
 }
 

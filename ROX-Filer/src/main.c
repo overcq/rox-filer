@@ -144,26 +144,26 @@ GtkTooltips *tooltips = NULL;
 #ifdef HAVE_GETOPT_LONG
 static struct option long_opts[] =
 {
-	{"dir", 1, NULL, 'd'},
-	{"top", 1, NULL, 't'},
-	{"bottom", 1, NULL, 'B'},
-	{"border", 1, NULL, 'b'},
-	{"left", 1, NULL, 'l'},
-	{"override", 0, NULL, 'o'},
-	{"pinboard", 1, NULL, 'p'},
-	{"right", 1, NULL, 'r'},
-	{"help", 0, NULL, 'h'},
-	{"version", 0, NULL, 'v'},
-	{"user", 0, NULL, 'u'},
-	{"new", 0, NULL, 'n'},
-	{"RPC", 0, NULL, 'R'},
-	{"show", 1, NULL, 's'},
-	{"rox-session", 0, NULL, 'S'},
-	{"examine", 1, NULL, 'x'},
-	{"close", 1, NULL, 'D'},
-	{"mime-type", 1, NULL, 'm'},
-	{"client-id", 1, NULL, 'c'},
-	{"url", 1, NULL, 'u'},
+	{"dir", required_argument, NULL, 'd'},
+	{"top", required_argument, NULL, 't'},
+	{"bottom", required_argument, NULL, 'B'},
+	{"border", required_argument, NULL, 'b'},
+	{"left", required_argument, NULL, 'l'},
+	{"override", no_argument, NULL, 'o'},
+	{"pinboard", required_argument, NULL, 'p'},
+	{"right", required_argument, NULL, 'r'},
+	{"help", no_argument, NULL, 'h'},
+	{"version", no_argument, NULL, 'v'},
+	{"user", no_argument, NULL, 'u'},
+	{"new", no_argument, NULL, 'n'},
+	{"RPC", no_argument, NULL, 'R'},
+	{"show", required_argument, NULL, 's'},
+	{"rox-session", no_argument, NULL, 'S'},
+	{"examine", required_argument, NULL, 'x'},
+	{"close", required_argument, NULL, 'D'},
+	{"mime-type", required_argument, NULL, 'm'},
+	{"client-id", required_argument, NULL, 'c'},
+	{"url", required_argument, NULL, 'u'},
 	{NULL, 0, NULL, 0},
 };
 #endif
@@ -228,8 +228,8 @@ static int rox_x_error(Display *display, XErrorEvent *error)
 			"   backtrace from your debugger.)",
 			g_get_prgname (),
 			buf,
-			error->serial, 
-			error->error_code, 
+			error->serial,
+			error->error_code,
 			error->request_code,
 			error->minor_code);
 
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
 	gboolean	rpc_mode = FALSE;
 	xmlDocPtr	rpc, soap_rpc = NULL, reply;
 	xmlNodePtr	body;
-	int		fd, ofd0=-1;
+	int		fd, orig_fd_0=-1;
 
 	/* Relocate stdin. We do need it (-R), but it can cause problems if
 	 * a child process wants a password, etc...
@@ -270,10 +270,8 @@ int main(int argc, char **argv)
 	 * case fd 0 isn't open at this point.
 	 */
 	fd = open("/dev/null", O_RDONLY);
-	if (fd > 0)
-	{
-		ofd0=dup(0);
-		close(0);
+	if( fd > 0 )
+	{	orig_fd_0 = dup(0);
 		dup2(fd, 0);
 		close(fd);
 	}
@@ -296,7 +294,7 @@ int main(int argc, char **argv)
 			"Use the AppRun script to invoke ROX-Filer...\n");
 		app_dir = g_get_current_dir();
 	}
-#ifdef HAVE_UNSETENV 
+#ifdef HAVE_UNSETENV
 	else
 	{
 		/* Don't pass it on to our child processes... */
@@ -318,7 +316,7 @@ int main(int argc, char **argv)
 		ngroups = 0;
 	else if (ngroups > 0)
 	{
-		supplemental_groups = g_malloc(sizeof(gid_t) * ngroups);
+		supplemental_groups = g_malloc_n( ngroups, sizeof( gid_t ));
 		getgroups(ngroups, supplemental_groups);
 	}
 
@@ -391,7 +389,7 @@ int main(int argc, char **argv)
 
 		if (c == EOF)
 			break;		/* No more options */
-		
+
 		switch (c)
 		{
 			case 'n':
@@ -430,7 +428,7 @@ int main(int argc, char **argv)
 				break;
 			case 's':
 				tmp = g_path_get_dirname(VALUE);
-				
+
 				if (tmp[0] == '/')
 					dir = NULL;
 				else
@@ -486,24 +484,20 @@ int main(int argc, char **argv)
 				break;
 			case 'R':
 				/* Reconnect stdin */
-				if(ofd0>-1) {
-					close(0);
-					dup2(ofd0, 0);
-				}
+				if( orig_fd_0 > -1 )
+					dup2( orig_fd_0, 0 );
 				soap_rpc = xmlParseFile("-");
 				if (!soap_rpc)
 					g_error("Invalid XML in RPC");
 				/* Disconnect stdin again */
 				fd = open("/dev/null", O_RDONLY);
-				if (fd > 0)
-				{
-					close(0);
-					dup2(fd, 0);
+				if( fd > 0 )
+				{	dup2( fd, 0 );
 					close(fd);
 				}
 				/* Want to print return uninterpreted */
 				rpc_mode=TRUE;
-				
+
 				break;
 
 			case 'S':
@@ -526,9 +520,9 @@ int main(int argc, char **argv)
 	tooltips = gtk_tooltips_new();
 
 	if (euid == 0 || show_user)
-		show_user_message = g_strdup_printf(_("Running as user '%s'"), 
+		show_user_message = g_strdup_printf(_("Running as user '%s'"),
 						    user_name(euid));
-	
+
 	/* Add each remaining (non-option) argument to the list of files
 	 * to run.
 	 */
@@ -573,12 +567,10 @@ int main(int argc, char **argv)
 	 * same, whether we're already running or not).
 	 * Not for -n, though (helps when debugging).
 	 */
-	if (!new_copy)
-	{
-		pid_t child;
-
+	if( !new_copy )
+	{	pid_t child;
 		child = fork();
-		if (child > 0)
+		if( child > 0 )
 			_exit(0);	/* Parent exits */
 		/* Otherwise we're the child (or an error occurred - ignore
 		 * it!).
@@ -734,7 +726,7 @@ static void soap_add(xmlNodePtr body,
 	xmlNs *rox;
 
 	rox = xmlSearchNsByHref(body->doc, body, ROX_NS);
-	
+
 	node = xmlNewChild(body, rox, function, NULL);
 
 	if (arg1_name)
@@ -757,7 +749,7 @@ static void soap_reply(xmlDocPtr reply, gboolean rpc_mode)
 
 		if(errs) {
 			int i;
-			
+
 			print=FALSE;
 
 			for(i=0; errs[i]; i++)
@@ -820,7 +812,7 @@ static void wake_up_cb(gpointer data, gint source, GdkInputCondition condition)
 	char buf[BUFLEN];
 
 	read(source, buf, BUFLEN);
-	
+
 	if (child_died_flag)
 		child_died_callback();
 #ifdef USE_DNOTIFY
@@ -848,7 +840,7 @@ static void add_default_panel_and_pinboard(xmlNodePtr body)
 			name="Default";
 		soap_add(body, "Pinboard","Name", name, NULL, NULL);
 	}
-					
+
 	if (o_session_panel_or_pin.int_value != SESSION_PINBOARD_ONLY)
 	{
 		gboolean use_old_option = TRUE;
@@ -904,7 +896,7 @@ static GtkWidget *launch_button_new(const char *label, const char *uri,
 				       g_strdup(appname),
 				       (GDestroyNotify) g_free);
 	}
-	
+
 	allow_right_click(button);
 
 	slash = strrchr(uri, '/');
@@ -999,7 +991,7 @@ static void make_script_clicked(GtkWidget *button, gpointer udata)
 	gtk_savebox_set_pathname(GTK_SAVEBOX(savebox), filename);
 	gtk_savebox_set_icon(GTK_SAVEBOX(savebox), image->pixbuf);
 	g_object_unref(image);
-				
+
 	gtk_widget_show(savebox);
 }
 
@@ -1018,7 +1010,7 @@ static GList *build_make_script(Option *option, xmlNode *node, guchar *label)
 	button = gtk_button_new_with_label(_(label));
 	g_signal_connect(button, "clicked", G_CALLBACK(make_script_clicked),
 			 NULL);
-	
+
 	tip = _("Click to save a script to run ROX-Filer.\n"
 		"If you are using Zero Install you should use 0alias "
 		"instead.");

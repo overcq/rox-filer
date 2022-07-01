@@ -13,8 +13,8 @@ LIBS = @LIBS@ @LFS_LDFLAGS@
 PKG_CONFIG_FLAGS=
 
 CFLAGS = -I. -I${srcdir} ${PROF} @CFLAGS@ @LFS_CFLAGS@ \
-	 `${PKG_CONFIG} ${PKG_CONFIG_FLAGS} --cflags gtk+-2.0 libxml-2.0 sm ice`
-LDFLAGS = ${PROF} @LDFLAGS@ `${PKG_CONFIG} ${PKG_CONFIG_FLAGS} --libs gtk+-2.0 libxml-2.0 sm ice| sed 's/-lpangoxft-[^ ]*//'` ${LIBS}
+	 `${PKG_CONFIG} ${PKG_CONFIG_FLAGS} --cflags gtk+-2.0 libxml-2.0 sm ice gio-2.0 gio-unix-2.0`
+LDFLAGS = ${PROF} @LDFLAGS@ `${PKG_CONFIG} ${PKG_CONFIG_FLAGS} --libs gtk+-2.0 libxml-2.0 sm ice gio-2.0 gio-unix-2.0| sed 's/-lpangoxft-[^ ]*//'` ${LIBS}
 
 ############ Things to change for different programs
 
@@ -29,7 +29,7 @@ SRCS = abox.c action.c appinfo.c appmenu.c bind.c bookmarks.c		\
 	remote.c run.c sc.c session.c support.c 		\
 	tasklist.c toolbar.c type.c view_collection.c	\
 	view_details.c view_iface.c wrapped.c xml.c xtypes.c \
-	xdgmime.c xdgmimeglob.c xdgmimeint.c xdgmimemagic.c xdgmimeparent.c xdgmimealias.c xdgmimecache.c 
+	xdgmime.c xdgmimeglob.c xdgmimeint.c xdgmimemagic.c xdgmimeparent.c xdgmimealias.c xdgmimecache.c
 
 OBJECTS = abox.o action.o appinfo.o appmenu.o bind.o bookmarks.o	\
 	bulk_rename.o cell_icon.o choices.o collection.o dir.o		\
