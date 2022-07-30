@@ -5,6 +5,11 @@ by Thomas Leonard
 
 
 
+Changes
+-------
+https://overcq.ct8.pl/overcq-rox-filer.html
+
+
 Quick start
 -----------
 If you downloaded a source or binary tarball directly, type this ($ is the
