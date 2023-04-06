@@ -7,7 +7,7 @@ by Thomas Leonard
 
 Changes
 -------
-https://overcq.ct8.pl/overcq-rox-filer.html
+https://overcq.ct8.pl/rox-filer.html
 
 
 Quick start
