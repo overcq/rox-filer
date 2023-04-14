@@ -901,6 +901,26 @@ static void permissions_apply(GtkWidget *widget, Permissions *perm)
 			     g_strerror(errno));
 }
 
+static
+void
+backup_apply( GtkWidget *widget
+, const char *path
+){	static int inside = FALSE;
+	if( inside )
+		return;
+	inside = TRUE;
+	if( gtk_toggle_button_get_inconsistent(( void * )widget ))
+	{	gtk_toggle_button_set_inconsistent(( void * )widget, FALSE );
+		gtk_toggle_button_set_active(( void * )widget, FALSE );
+	}else if( !gtk_toggle_button_get_active(( void * )widget ))
+		gtk_toggle_button_set_inconsistent(( void * )widget, TRUE );
+	if( gtk_toggle_button_get_inconsistent(( void * )widget ))
+		xattr_remove( path, "user.H_ocq_Q_backup_S" );
+	else
+		xattr_set( path, "user.H_ocq_Q_backup_S", gtk_toggle_button_get_active(( void * )widget ) ? "yes" : "no", -1 );
+	inside = FALSE;
+}
+
 static GtkWidget *make_permissions(const gchar *path, DirItem *item)
 {
 	Permissions *perm;
@@ -966,6 +986,14 @@ static GtkWidget *make_permissions(const gchar *path, DirItem *item)
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tick), TRUE);
 	g_signal_connect(tick, "toggled", G_CALLBACK(permissions_apply), perm);
 	perm->bits[11] = tick;
+
+	tick = gtk_check_button_new_with_label( _( "Backup" ));
+	gtk_table_attach_defaults( GTK_TABLE(table), tick, 4, 5, 4, 5 );
+	if( item->flags & ( ITEM_FLAG_BACKUP_YES | ITEM_FLAG_BACKUP_NO ))
+		gtk_toggle_button_set_active( GTK_TOGGLE_BUTTON(tick), item->flags & ITEM_FLAG_BACKUP_YES );
+	else
+		gtk_toggle_button_set_inconsistent( GTK_TOGGLE_BUTTON(tick), TRUE );
+	g_signal_connect( tick, "toggled", G_CALLBACK( backup_apply ), path );
 
 	g_signal_connect(table, "destroy",
 				G_CALLBACK(permissions_destroyed), perm);

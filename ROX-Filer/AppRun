@@ -36,10 +36,9 @@ case $1 in
 		fi
 		BUILDDIR="$APP_DIR/build"
 		[ ! -d "$BUILDDIR" ] && mkdir "$BUILDDIR"
-		rm -f "$BUILDDIR/config.cache"
-		rm -f "$APP_DIR/src/config.h"	# (for upgrading)
-		cd "$BUILDDIR" && "$APP_DIR/src/configure" "$@" \
-			&& $MAKE clean && $MAKE && echo Done >&2 && exit 0
+		#rm -f "$BUILDDIR/config.cache"
+		#rm -f "$APP_DIR/src/config.h"	# (for upgrading)
+		cd "$BUILDDIR" && "$APP_DIR/src/configure" "$@" && $MAKE && echo Done >&2 && exit 0
 		echo Compile failed >&2
 		echo Press Return... >&2
 		read WAIT

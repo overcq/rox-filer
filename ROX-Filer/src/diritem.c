@@ -95,6 +95,14 @@ void diritem_restat(const guchar *path, DirItem *item, struct stat *parent)
 		if (xattr_have(path))
 			item->flags |= ITEM_FLAG_HAS_XATTR;
 
+		char *backup = xattr_backup(path);
+		if(backup)
+		{	if( !strcmp( backup, "yes" ))
+				item->flags |= ITEM_FLAG_BACKUP_YES;
+			else if( !strcmp( backup, "no" ))
+				item->flags |= ITEM_FLAG_BACKUP_NO;
+			g_free(backup);
+		}
 		if (S_ISLNK(info.st_mode))
 		{
 			if (mc_stat(path, &info))

@@ -200,6 +200,10 @@ void draw_huge_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
 				    &image_x, area->y + 2);
 	}
+	if( item->flags & ITEM_FLAG_BACKUP_YES )
+		draw_emblem_on_icon( window, style, ROX_STOCK_BACKUP_YES, &image_x, area->y + 2 );
+	else if( item->flags & ITEM_FLAG_BACKUP_NO )
+		draw_emblem_on_icon( window, style, ROX_STOCK_BACKUP_NO, &image_x, area->y + 2 );
 }
 
 /* Draw this icon (including any symlink or mount symbol) inside the
@@ -260,6 +264,10 @@ void draw_large_icon(GdkWindow *window,
 		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
 				    &image_x, area->y + 2);
 	}
+	if( item->flags & ITEM_FLAG_BACKUP_YES )
+		draw_emblem_on_icon( window, style, ROX_STOCK_BACKUP_YES, &image_x, area->y + 2 );
+	else if( item->flags & ITEM_FLAG_BACKUP_NO )
+		draw_emblem_on_icon( window, style, ROX_STOCK_BACKUP_NO, &image_x, area->y + 2 );
 }
 
 void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
@@ -313,6 +321,10 @@ void draw_small_icon(GdkWindow *window, GtkStyle *style, GdkRectangle *area,
 		draw_emblem_on_icon(window, style, ROX_STOCK_XATTR,
 				    &image_x, area->y + 8);
 	}
+	if( item->flags & ITEM_FLAG_BACKUP_YES )
+		draw_emblem_on_icon( window, style, ROX_STOCK_BACKUP_YES, &image_x, area->y + 8 );
+	else if( item->flags & ITEM_FLAG_BACKUP_NO )
+		draw_emblem_on_icon( window, style, ROX_STOCK_BACKUP_NO, &image_x, area->y + 8 );
 }
 
 /* The sort functions aren't called from outside, but they are
