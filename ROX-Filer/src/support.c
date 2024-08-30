@@ -1179,45 +1179,44 @@ struct _CollatePart {
  * quickly compared later for intelligent sorting (comparing names is
  * speed-critical).
  */
-CollateKey *collate_key_new(const guchar *name)
-{
-	const guchar *i;
-	guchar *to_free = NULL;
-	GArray *array;
-	CollatePart new;
-	CollateKey *retval;
+CollateKey *
+collate_key_new( const char *name
+){	CollatePart new;
 	char *tmp;
 
 	g_return_val_if_fail(name != NULL, NULL);
 
-	array = g_array_new(FALSE, FALSE, sizeof(CollatePart));
+	GArray *array = g_array_new(FALSE, FALSE, sizeof(CollatePart));
 
 	/* Ensure valid UTF-8 */
+	char *to_free = NULL;
 	if (!g_utf8_validate(name, -1, NULL))
 	{
 		to_free = to_utf8(name);
 		name = to_free;
 	}
 
-	retval = g_new(CollateKey, 1);
+	const char *ext = strchr( name, '.' );
+	const char *name_without_ext_ = ext ? g_strndup( name, ext - name ) : name;
+	const char *name_without_ext = name_without_ext_;
+
+	CollateKey *retval = g_new( CollateKey, 1 );
 	retval->caps = g_unichar_isupper(g_utf8_get_char(name));
 
-	for (i = name; *i; i = g_utf8_next_char(i))
-	{
-		gunichar first_char;
-
-		/* We're in a (possibly blank) text section starting at 'name'.
+	const char *i;
+	for( i = name_without_ext; *i; i = g_utf8_next_char(i) )
+	{	/* We're in a (possibly blank) text section starting at 'name'.
 		 * Find the end of it (the next digit, or end of string).
 		 * Note: g_ascii_isdigit takes char, not unichar, while
 		 * g_unicode_isdigit returns true for non ASCII digits.
 		 */
-		first_char = g_utf8_get_char(i);
+		gunichar first_char = g_utf8_get_char(i);
 		if (first_char >= '0' && first_char <= '9')
 		{
 			char *endp;
 
 			/* i -> first digit character */
-			tmp = g_utf8_strdown(name, i - name);
+			tmp = g_utf8_strdown( name_without_ext, i - name_without_ext );
 			new.text = g_utf8_collate_key(tmp, -1);
 			g_free(tmp);
 			new.number = strtol(i, &endp, 10);
@@ -1226,16 +1225,23 @@ CollateKey *collate_key_new(const guchar *name)
 
 			g_return_val_if_fail(endp > (char *) i, NULL);
 
-			name = endp;
-			i = name - 1;
+			name_without_ext = endp;
+			i = name_without_ext - 1;
 		}
 	}
 
-	tmp = g_utf8_strdown(name, i - name);
+	tmp = g_utf8_strdown( name_without_ext, i - name_without_ext );
 	new.text = g_utf8_collate_key(tmp, -1);
 	g_free(tmp);
 	new.number = -1;
 	g_array_append_val(array, new);
+
+	if(ext)
+	{	new.text = g_utf8_collate_key( ext, -1 );
+		new.number = -1;
+		g_array_append_val( array, new );
+		g_free( name_without_ext_ );
+	}
 
 	new.text = NULL;
 	g_array_append_val(array, new);
