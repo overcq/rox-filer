@@ -118,13 +118,6 @@ int xattr_have(const char *path)
 	return (nent>0);
 }
 
-char *
-xattr_backup( const char *path
-){	if( !dyn_getxattr )
-		return NULL;
-	return xattr_get( path, "user.H_ocq_Q_backup_S", 0 );
-}
-
 gchar *xattr_get(const char *path, const char *attr, int *len)
 {
 	ssize_t size;
@@ -172,16 +165,6 @@ int xattr_set(const char *path, const char *attr,
 		value_len = strlen(value);
 
 	return dyn_setxattr(path, attr, value, value_len, 0);
-}
-
-int
-xattr_remove( const char *path
-, const char *attr
-){	if( !dyn_removexattr)
-	{	errno = ENOSYS;
-		return 1; /* Set attr failed */
-	}
-	return dyn_removexattr( path, attr );
 }
 
 

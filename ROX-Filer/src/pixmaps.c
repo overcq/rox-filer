@@ -95,8 +95,6 @@ struct _ChildThumbnail {
 };
 
 static const char *stocks[] = {
-	ROX_STOCK_BACKUP_YES,
-	ROX_STOCK_BACKUP_NO,
 	ROX_STOCK_SHOW_DETAILS,
 	ROX_STOCK_SHOW_HIDDEN,
 	ROX_STOCK_SELECT,
