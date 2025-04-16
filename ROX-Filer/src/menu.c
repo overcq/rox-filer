@@ -426,7 +426,7 @@ void position_menu(GtkMenu *menu, gint *x, gint *y,
 
 	gtk_widget_size_request(GTK_WIDGET(menu), &requisition);
 
-	*x = pos[0];
+	*x = pos[0] - requisition.width * 7 / 8;
 	*y = pos[1] - y_shift;
 
 	*x = CLAMP(*x, 0, screen_width - requisition.width);
