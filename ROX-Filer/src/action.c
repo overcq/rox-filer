@@ -962,17 +962,6 @@ static void do_delete(const char *src_path, const char *unused)
 	}
 	else if (unlink(src_path))
 		send_error();
-	else
-	{
-		send_check_path(safe_path);
-		if (strcmp(g_basename(safe_path), ".DirIcon") == 0)
-		{
-			gchar *dir;
-			dir = g_path_get_dirname(safe_path);
-			send_check_path(dir);
-			g_free(dir);
-		}
-	}
 
 	g_free(safe_path);
 }
