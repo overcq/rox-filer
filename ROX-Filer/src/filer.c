@@ -2456,14 +2456,93 @@ static guchar *filer_create_uri_list(FilerWindow *filer_window)
 	return retval;
 }
 
+static
+void
+filer_perform_action_( FilerWindow *filer_window
+, GdkEventButton *event
+, DirItem *item
+, ViewIter *iter
+){	BindAction action = bind_lookup_bev(
+			item ? BIND_DIRECTORY_ICON : BIND_DIRECTORY,
+			event);
+	gboolean press = event->type == GDK_BUTTON_PRESS;
+	OpenFlags flags = 0;
+
+	switch (action)
+	{
+		case ACT_CLEAR_SELECTION:
+			view_clear_selection(filer_window->view);
+			break;
+		case ACT_TOGGLE_SELECTED:
+			view_set_selected(filer_window->view, iter,
+				!view_get_selected(filer_window->view, iter));
+			break;
+		case ACT_SELECT_EXCL:
+			view_select_only(filer_window->view, iter);
+			break;
+		case ACT_EDIT_ITEM:
+			flags |= OPEN_SHIFT;
+			/* (no break) */
+		case ACT_OPEN_ITEM:
+			if (event->button != 1 || event->state & GDK_MOD1_MASK)
+				flags |= OPEN_CLOSE_WINDOW;
+			else
+				flags |= OPEN_SAME_WINDOW;
+			if (o_new_button_1.int_value)
+				flags ^= OPEN_SAME_WINDOW;
+			if (event->type == GDK_2BUTTON_PRESS)
+				view_set_selected(filer_window->view, iter, FALSE);
+			dnd_motion_ungrab();
+			filer_openitem(filer_window, iter, flags);
+			break;
+		case ACT_POPUP_MENU:
+			dnd_motion_ungrab();
+			tooltip_show(NULL);
+			show_filer_menu(filer_window,
+					(GdkEvent *) event, iter);
+			break;
+		case ACT_PRIME_AND_SELECT:
+			if (item && !view_get_selected(filer_window->view, iter))
+				view_select_only(filer_window->view, iter);
+			dnd_motion_start(MOTION_READY_FOR_DND);
+			break;
+		case ACT_PRIME_AND_TOGGLE:
+			view_set_selected(filer_window->view, iter,
+				!view_get_selected(filer_window->view, iter));
+			dnd_motion_start(MOTION_READY_FOR_DND);
+			break;
+		case ACT_PRIME_FOR_DND:
+			dnd_motion_start(MOTION_READY_FOR_DND);
+			break;
+		case ACT_IGNORE:
+			if (press && event->button < 4)
+			{
+				if (item)
+					view_wink_item(filer_window->view, iter);
+				dnd_motion_start(MOTION_NONE);
+			}
+			break;
+		case ACT_LASSO_CLEAR:
+			view_clear_selection(filer_window->view);
+			/* (no break) */
+		case ACT_LASSO_MODIFY:
+			view_start_lasso_box(filer_window->view, event);
+			break;
+		case ACT_RESIZE:
+			view_autosize(filer_window->view);
+			break;
+		default:
+			g_warning("Unsupported action : %d\n", action);
+			break;
+	}
+}
+
 void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 {
-	BindAction	action;
 	ViewIface	*view = filer_window->view;
 	DirItem		*item = NULL;
 	gboolean	press = event->type == GDK_BUTTON_PRESS;
 	ViewIter	iter;
-	OpenFlags	flags = 0;
 
 	if (event->button > 3)
 		return;
@@ -2480,7 +2559,7 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 	{
 		/* Possibly a really slow DnD operation? */
 		filer_window->temp_item_selected = FALSE;
-		
+
 		filer_selection_changed(filer_window, event->time);
 		return;
 	}
@@ -2502,103 +2581,51 @@ void filer_perform_action(FilerWindow *filer_window, GdkEventButton *event)
 		/* Make sure both parts of a double-click fall on
 		 * the same file.
 		 */
-		static guchar *first_click = NULL;
-		static guchar *second_click = NULL;
+		static guchar *first_click;
+		static guchar *second_click;
+		static _Bool double_click;
 
-		if (event->type == GDK_BUTTON_PRESS)
-		{
-			g_free(first_click);
+		if( event->type == GDK_BUTTON_PRESS )
+		{	g_free( first_click );
 			first_click = second_click;
-
 			if (item)
 				second_click = g_strdup(item->leafname);
 			else
 				second_click = NULL;
 		}
-
-		if (event->type == GDK_2BUTTON_PRESS)
-		{
-			if (first_click && second_click &&
-			    strcmp(first_click, second_click) != 0)
+		if( event->type == GDK_2BUTTON_PRESS )
+		{	if( first_click
+			&& second_click
+			&& strcmp( first_click, second_click )
+			)
 				return;
-			if ((first_click || second_click) &&
-			    !(first_click && second_click))
+			if(( first_click
+			  || second_click
+			  )
+			&& !( first_click
+			  && second_click
+			))
 				return;
+			double_click = TRUE;
+			return;
+		}
+		if( event->type == GDK_BUTTON_RELEASE
+		&& double_click
+		)
+		{	double_click = FALSE;
+			if(( !first_click
+			  && !second_click
+			  )
+			|| ( item
+			  && !strcmp( second_click, item->leafname )
+			))
+			{	event->type = GDK_2BUTTON_PRESS;
+				filer_perform_action_( filer_window, event, item, &iter );
+			}
+			event->type = GDK_BUTTON_RELEASE;
 		}
 	}
-
-	action = bind_lookup_bev(
-			item ? BIND_DIRECTORY_ICON : BIND_DIRECTORY,
-			event);
-
-	switch (action)
-	{
-		case ACT_CLEAR_SELECTION:
-			view_clear_selection(view);
-			break;
-		case ACT_TOGGLE_SELECTED:
-			view_set_selected(view, &iter, 
-				!view_get_selected(view, &iter));
-			break;
-		case ACT_SELECT_EXCL:
-			view_select_only(view, &iter);
-			break;
-		case ACT_EDIT_ITEM:
-			flags |= OPEN_SHIFT;
-			/* (no break) */
-		case ACT_OPEN_ITEM:
-			if (event->button != 1 || event->state & GDK_MOD1_MASK)
-				flags |= OPEN_CLOSE_WINDOW;
-			else
-				flags |= OPEN_SAME_WINDOW;
-			if (o_new_button_1.int_value)
-				flags ^= OPEN_SAME_WINDOW;
-			if (event->type == GDK_2BUTTON_PRESS)
-				view_set_selected(view, &iter, FALSE);
-			dnd_motion_ungrab();
-
-			filer_openitem(filer_window, &iter, flags);
-			break;
-		case ACT_POPUP_MENU:
-			dnd_motion_ungrab();
-			tooltip_show(NULL);
-			show_filer_menu(filer_window,
-					(GdkEvent *) event, &iter);
-			break;
-		case ACT_PRIME_AND_SELECT:
-			if (item && !view_get_selected(view, &iter))
-				view_select_only(view, &iter);
-			dnd_motion_start(MOTION_READY_FOR_DND);
-			break;
-		case ACT_PRIME_AND_TOGGLE:
-			view_set_selected(view, &iter, 
-				!view_get_selected(view, &iter));
-			dnd_motion_start(MOTION_READY_FOR_DND);
-			break;
-		case ACT_PRIME_FOR_DND:
-			dnd_motion_start(MOTION_READY_FOR_DND);
-			break;
-		case ACT_IGNORE:
-			if (press && event->button < 4)
-			{
-				if (item)
-					view_wink_item(view, &iter);
-				dnd_motion_start(MOTION_NONE);
-			}
-			break;
-		case ACT_LASSO_CLEAR:
-			view_clear_selection(view);
-			/* (no break) */
-		case ACT_LASSO_MODIFY:
-			view_start_lasso_box(view, event);
-			break;
-		case ACT_RESIZE:
-			view_autosize(filer_window->view);
-			break;
-		default:
-			g_warning("Unsupported action : %d\n", action);
-			break;
-	}
+	filer_perform_action_( filer_window, event, item, &iter );
 }
 
 /* It's time to make the tooltip appear. If we're not over the item any

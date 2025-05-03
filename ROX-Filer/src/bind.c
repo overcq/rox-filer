@@ -76,7 +76,7 @@ BindAction bind_lookup_bev(BindContext context, GdkEventButton *event)
 		menu_button = 3;	/* Must work with window manager */
 
 	if (b == menu_button)
-		return press ? ACT_POPUP_MENU : ACT_IGNORE;
+		return release ? ACT_POPUP_MENU : ACT_IGNORE;
 
 	if (item && dclick && dclick_mode)
 		return shift ? ACT_EDIT_ITEM : ACT_OPEN_ITEM;

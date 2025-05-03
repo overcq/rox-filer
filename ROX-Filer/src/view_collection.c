@@ -786,7 +786,6 @@ static gint coll_button_release(GtkWidget *widget,
 			collection_end_lasso(view_collection->collection,
 				event->button == 1 ? GDK_SET : GDK_INVERT);
 		}
-		return FALSE;
 	}
 
 	filer_perform_action(view_collection->filer_window, event);
